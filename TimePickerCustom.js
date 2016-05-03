@@ -10,57 +10,192 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
                 defFunction = (configuration.defFunction) ? LF.TimeFunctions[configuration.defFunction] : LF.TimeFunctions.NoopFunction,
                 defParams = _.extend({}, configuration.defParams);
 
-                var offset = configuration.defaultOffset || 0; // if defaultOffset is 1 defaultValue is hour -1
+            if ( configuration.simpleFunc ){
 
-                minParams = { id: this.model.id, type: "min", offset: offset};
-                maxParams = { id: this.model.id, type: "max", offset: offset};
-                defParams = { id: this.model.id, type: "def", offset: offset};
-                
-  
-            minFunction(minParams, _(function (minVal) {
+                var result = this.filterSimpleFunc((configuration.simpleFunc).split('~'));
+                var minVal = new Date(result[0]), maxVal = new Date(result[1]), defVal = new Date(result[2]);
                 
                 if (minVal) {
-                    //Sanitize values returned to all be on the same date
                     var min = LF.Utilities.convertToUtc(new Date("1900-01-01"));
                     min.setHours(minVal.getHours(), minVal.getMinutes(), 0, 0);
-
                     this.model.attributes.min = min.ISOLocalTZStamp();
                 }
 
-                maxFunction(maxParams, _(function (maxVal) {
-                    if (maxVal) {
-                        //Sanitize values returned to all be on the same date
-                        var max = LF.Utilities.convertToUtc(new Date("1900-01-01"));
-                        max.setHours(maxVal.getHours(), maxVal.getMinutes(), 0, 0);
+                if (maxVal) {
+                    //Sanitize values returned to all be on the same date
+                    var max = LF.Utilities.convertToUtc(new Date("1900-01-01"));
+                    max.setHours(maxVal.getHours(), maxVal.getMinutes(), 0, 0);
+                    this.model.attributes.max = max.ISOLocalTZStamp();
+                }
+               
+                if (defVal) {
+                    //Sanitize values returned to all be on the same date
+                    var def = LF.Utilities.convertToUtc(new Date("1900-01-01"));
+                    def.setHours(defVal.getHours(), defVal.getMinutes(), 0, 0);
+                    configuration.defaultValue = (Number(def.getTime())/1000);
+                }
+                
+                this.doRender();
 
-                        this.model.attributes.max = max.ISOLocalTZStamp();
+            }else{    
+  
+                minFunction(minParams, _(function (minVal) {
+                    
+                    if (minVal) {
+                        //Sanitize values returned to all be on the same date
+                        var min = LF.Utilities.convertToUtc(new Date("1900-01-01"));
+                        min.setHours(minVal.getHours(), minVal.getMinutes(), 0, 0);
+
+                        this.model.attributes.min = min.ISOLocalTZStamp();
                     }
 
-                    defFunction(defParams, _(function (defVal) {
-                        if (defVal) {
+                    maxFunction(maxParams, _(function (maxVal) {
+                        if (maxVal) {
                             //Sanitize values returned to all be on the same date
-                            var def = LF.Utilities.convertToUtc(new Date("1900-01-01"));
-                            def.setHours(defVal.getHours(), defVal.getMinutes(), 0, 0);
+                            var max = LF.Utilities.convertToUtc(new Date("1900-01-01"));
+                            max.setHours(maxVal.getHours(), maxVal.getMinutes(), 0, 0);
 
-                            configuration.defaultValue = (Number(def.getTime())/1000);
+                            this.model.attributes.max = max.ISOLocalTZStamp();
                         }
 
-                        this.doRender();
+                        defFunction(defParams, _(function (defVal) {
+                            if (defVal) {
+                                //Sanitize values returned to all be on the same date
+                                var def = LF.Utilities.convertToUtc(new Date("1900-01-01"));
+                                def.setHours(defVal.getHours(), defVal.getMinutes(), 0, 0);
+
+                                configuration.defaultValue = (Number(def.getTime())/1000);
+                            }
+
+                            this.doRender();
+                        }).bind(this));
                     }).bind(this));
                 }).bind(this));
-            }).bind(this));
+            }
         } else {
             this.doRender();
         }
     },
     doRender: function () {
         LF.Widget.TimePicker.prototype.render.call(this);
+    },
+    filterSimpleFunc: function(strings){
+        var _this = this;
+        var retArray = [];
+        _.each(strings,function(item){
+            var pItem = item;
+            if (item.startsWith('activation') || item.startsWith('current')){
+                pItem = _this.processBased(item);
+            }      
+            retArray.push(pItem);
+        });
+        return retArray;
+    },
+    processBased: function(item){
+        var itemArray = item.split(' ');
+        var idate = itemArray[0], hours = itemArray[1];
+
+        var bdate = new Date();
+        switch(idate){
+            case 'activation':
+                bdate = LF.TimeFunctions.getActivationDate(hours);
+                break;
+            case 'current':
+                bdate = LF.TimeFunctions.getCurrentDate(hours);
+                break;
+        }
+        return bdate;
     }
 });
 
 //Start of Time helper functions, define new functions within LF.TimeUtils
 LF.TimeFunctions = {};
 
+//################################################
+
+LF.TimeFunctions.getActivationDate = function (hours) {
+    var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
+    val.setSeconds(0, 0);
+    var fdate = new Date(val);
+    if ( hours.startsWith('-')){
+
+        var h = parseInt(hours.replace('-',''));
+        if ( h > 0){
+            val.setHours(val.getHours() - h);
+        }    
+
+    }else if ( hours.startsWith('=')){
+
+        var h = parseInt(hours.replace('=',''));
+        if (h > 0){
+            val.setHours(h);
+        }
+        
+    }else{
+        if ( hours > 0){
+            val.setHours(val.getHours() + parseInt(hours));
+        }
+        
+        
+    }
+    val = LF.TimeFunctions.shiftDates(fdate,val);
+    return val;
+};
+
+LF.TimeFunctions.getCurrentDate = function (hours) {
+    
+    var val = new Date();
+    val.setSeconds(0, 0);
+    var fdate = new Date(val);
+
+    if ( hours.startsWith('-')){
+
+        var h = parseInt(hours.replace('-',''));
+        if ( h > 0){
+            val.setHours(val.getHours() - h);
+        }
+
+    }else if ( hours.startsWith('=')){
+
+        var h = parseInt(hours.replace('=',''));
+        if ( h > 0 ){
+            var currentHour = val.getHours();
+            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
+                val.setHours(0,0,0,0);
+            }else{
+               val.setHours(h); 
+            }
+            
+        }
+    }else{
+        if ( hours > 0 ){
+           val.setHours(val.getHours() + parseInt(hours)); 
+        }
+        
+        
+    }
+    
+    val = LF.TimeFunctions.shiftDates(fdate,val);
+    return val;
+};
+
+LF.TimeFunctions.shiftDates = function (fdate,sdate){
+    var fday = fdate.getDay();
+    var sday = sdate.getDay();
+
+    if ( sday > fday){
+        
+        fdate.setHours(23,59,0,0);
+        return fdate;
+    }else if ( sday < fday){
+        
+        fdate.setHours(0,0,0,0);
+        return fdate;
+    }
+        
+    return sdate;
+    
+}
 //################################################
 LF.TimeFunctions.genFun = function(params,callback){
     if (params.offset === 1){
@@ -167,46 +302,48 @@ LF.TimeFunctions.getMD050Max = function (params, callback) {
 
 //USAGE
 // {
-//        id:"TRN160_Q1", 
-//        IG:"PracticeDiary", 
-//        IT:"", 
-//        text:["TRN160_Q1_MSG"], 
-//        className:"TRN160_Q1", 
-//        widget: 
-//        {
-//            id:"TRN160_Q1_W1", 
-//            type:"TimePickerCustom", 
-//            showLabels:false, 
-//            configuration: 
-//            {
-//                minFunction: "genFun",
-//                maxFunction: "genFun",
-//                defFunction: "genFun",
-//                minuteStep: 1
+//     id:"TRN320_Q1", 
+//     IG:"PracticeDiary", 
+//     IT:"", 
+//     text:["TRN320_Q1_MSG"], 
+//     className:"TRN320_Q1", 
+//     widget: 
+//     {
+//         id:"TRN320_Q1_W1", 
+//         type:"TimePickerCustom", 
+//         showLabels:false, 
+//         configuration: 
+//         {
+//             minFunction: "genFun",
+//             maxFunction: "genFun",
+//             defFunction: "genFun",
+//             "simpleFunc": "current =12~current 0~current 0",
+//             minuteStep: 1
             
-//            }
-//        }
-//    },
+//         }
+//     }
+// },
 
 //USAGE
 // {
-//             id:"TRN170_Q1", 
-//             IG:"MorningDiary", 
-//             IT:"HIGBSS2L", 
-//             text:["TRN170_MSG"], 
-//             className:"TRN170_Q1", 
-//             widget: {
-//                 id:"TRN170_Q1_W1", 
-//                 type:"TimePickerCustom", 
-//                 showLabels:false, 
-//                 configuration: 
-//                 {
-//                     minFunction: "genFun",
-//                     maxFunction: "genFun",
-//                     defFunction: "genFun",
-//                     minuteStep: 1,
-//                     defaultOffset: 1
-                    
-//                 }
-//             }
-//     },
+//     id:"TRN330_Q1", 
+//     IG:"PracticeDiary", 
+//     IT:"", 
+//     text:["TRN330_Q1_MSG"], 
+//     className:"TRN330_Q1", 
+//     widget: 
+//     {
+//         id:"TRN330_Q1_W1", 
+//         type:"TimePickerCustom", 
+//         showLabels:false, 
+//         configuration: 
+//         {
+//             minFunction: "genFun",
+//             maxFunction: "genFun",
+//             defFunction: "genFun",
+//             "simpleFunc": "current =12~current 0~current -1",
+//             minuteStep: 1
+            
+//         }
+//     }
+// },
