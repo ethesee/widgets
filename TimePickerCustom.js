@@ -1,4 +1,9 @@
+//Evans Thesee 5/3/2016 for ERT.com add simpleFunc in configuration. see USAGE way at the bottom. v1.0
 LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
+    buildArray: function(assoc){
+        //This function can be changed later to do a lot more parsing and filtering.
+        return [assoc.dateFrom, assoc.minVal, assoc.maxVal, assoc.defVal];
+    },
     render: function () {
         if (!localStorage.getItem('ScreenshotMode')) {
             var configuration = this.model.get('configuration');
@@ -11,9 +16,12 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
                 defParams = _.extend({}, configuration.defParams);
 
             if ( configuration.simpleFunc ){
-
-                var result = this.filterSimpleFunc((configuration.simpleFunc).split('~'));
-                var minVal = new Date(result[0]), maxVal = new Date(result[1]), defVal = new Date(result[2]);
+                var spf = configuration.simpleFunc;
+                
+                var result = this.filterSimpleFunc(this.buildArray(spf));
+                var minVal = new Date(result[0]), 
+                    maxVal = new Date(result[1]), 
+                    defVal = new Date(result[2]);
                 
                 if (minVal) {
                     var min = LF.Utilities.convertToUtc(new Date("1900-01-01"));
@@ -82,21 +90,21 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
     filterSimpleFunc: function(strings){
         var _this = this;
         var retArray = [];
+        var dateFrom = strings.shift();
+        
         _.each(strings,function(item){
             var pItem = item;
-            if (item.startsWith('activation') || item.startsWith('current')){
-                pItem = _this.processBased(item);
-            }      
+            pItem = _this.processBased(dateFrom,item);
+                 
             retArray.push(pItem);
         });
+
         return retArray;
     },
-    processBased: function(item){
-        var itemArray = item.split(' ');
-        var idate = itemArray[0], hours = itemArray[1];
-
+    processBased: function(dateFrom,hours){
+        
         var bdate = new Date();
-        switch(idate){
+        switch(dateFrom){
             case 'activation':
                 bdate = LF.TimeFunctions.getActivationDate(hours);
                 break;
@@ -117,52 +125,17 @@ LF.TimeFunctions.getActivationDate = function (hours) {
     var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
     val.setSeconds(0, 0);
     var fdate = new Date(val);
-    if ( hours.startsWith('-')){
-
-        var h = parseInt(hours.replace('-',''));
-        if ( h > 0){
-            val.setHours(val.getHours() - h);
-        }    
-
-    }else if ( hours.startsWith('=')){
-
-        var h = parseInt(hours.replace('=',''));
-        if (h > 0){
-            var currentHour = val.getHours();
-            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                val.setHours(0,0,0,0);
-            }else{
-                val.setHours(h); 
-            }
-            
-        }
-        
-    }else{
-        if ( hours > 0){
-            val.setHours(val.getHours() + parseInt(hours));
-        }
-        
-        
-    }
-    val = LF.TimeFunctions.shiftDates(fdate,val);
-    return val;
-};
-
-LF.TimeFunctions.getCurrentDate = function (hours) {
-    
-    var val = new Date();
-    val.setSeconds(0, 0);
-    var fdate = new Date(val);
+    hours = hours.toString();
 
     if ( hours.startsWith('-')){
-
+        console.log("hours-:" + hours);
         var h = parseInt(hours.replace('-',''));
         if ( h > 0){
             val.setHours(val.getHours() - h);
         }
 
-    }else if ( hours.startsWith('=')){
-
+    }else if ( typeof hours === "string" && hours.startsWith('=')){
+        
         var h = parseInt(hours.replace('=',''));
         if ( h > 0 ){
             var currentHour = val.getHours();
@@ -174,6 +147,46 @@ LF.TimeFunctions.getCurrentDate = function (hours) {
             
         }
     }else{
+        
+        if ( hours > 0 ){
+           val.setHours(val.getHours() + parseInt(hours)); 
+        }
+        
+        
+    }
+    
+    val = LF.TimeFunctions.shiftDates(fdate,val);
+    return val;
+};
+
+LF.TimeFunctions.getCurrentDate = function (hours) {
+    
+    var val = new Date();
+    val.setSeconds(0, 0);
+    var fdate = new Date(val);
+    hours = hours.toString();
+
+    if ( hours.startsWith('-')){
+        console.log("hours-:" + hours);
+        var h = parseInt(hours.replace('-',''));
+        if ( h > 0){
+            val.setHours(val.getHours() - h);
+        }
+
+    }else if ( typeof hours === "string" && hours.startsWith('=')){
+        
+        var h = parseInt(hours.replace('=',''));
+        if ( h > 0 ){
+            var currentHour = val.getHours();
+            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
+                val.setHours(0,0,0,0);
+            }else{
+               val.setHours(h); 
+            }
+            
+        }
+    }else{
+        
         if ( hours > 0 ){
            val.setHours(val.getHours() + parseInt(hours)); 
         }
@@ -308,14 +321,14 @@ LF.TimeFunctions.getMD050Max = function (params, callback) {
 
 //USAGE
 // {
-//     id:"TRN320_Q1", 
+//     id:"TRN160_Q1", 
 //     IG:"PracticeDiary", 
 //     IT:"", 
-//     text:["TRN320_Q1_MSG"], 
-//     className:"TRN320_Q1", 
+//     text:["TRN160_Q1_MSG"], 
+//     className:"TRN160_Q1", 
 //     widget: 
 //     {
-//         id:"TRN320_Q1_W1", 
+//         id:"TRN160_Q1_W1", 
 //         type:"TimePickerCustom", 
 //         showLabels:false, 
 //         configuration: 
@@ -323,7 +336,8 @@ LF.TimeFunctions.getMD050Max = function (params, callback) {
 //             minFunction: "genFun",
 //             maxFunction: "genFun",
 //             defFunction: "genFun",
-//             "simpleFunc": "current =12~current 0~current 0",
+//             "simpleFunc": { "dateFrom": "current", "minVal": "=12", "maxVal": 0, "defVal": 0},
+//             // "simpleFunc": "current =12~current 0~current 0",
 //             minuteStep: 1
             
 //         }
@@ -332,14 +346,14 @@ LF.TimeFunctions.getMD050Max = function (params, callback) {
 
 //USAGE
 // {
-//     id:"TRN330_Q1", 
+//     id:"TRN160_Q1", 
 //     IG:"PracticeDiary", 
 //     IT:"", 
-//     text:["TRN330_Q1_MSG"], 
-//     className:"TRN330_Q1", 
+//     text:["TRN160_Q1_MSG"], 
+//     className:"TRN160_Q1", 
 //     widget: 
 //     {
-//         id:"TRN330_Q1_W1", 
+//         id:"TRN160_Q1_W1", 
 //         type:"TimePickerCustom", 
 //         showLabels:false, 
 //         configuration: 
@@ -347,7 +361,8 @@ LF.TimeFunctions.getMD050Max = function (params, callback) {
 //             minFunction: "genFun",
 //             maxFunction: "genFun",
 //             defFunction: "genFun",
-//             "simpleFunc": "current =12~current 0~current -1",
+//             "simpleFunc": { "dateFrom": "current", "minVal": "=12", "maxVal": 0, "defVal": -1},
+//             // "simpleFunc": "current =12~current 0~current 0",
 //             minuteStep: 1
             
 //         }

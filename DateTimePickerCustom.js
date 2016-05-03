@@ -1,5 +1,6 @@
 
 LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
+
     //TODO: remove when fixed in product
     setWidgetDefaults: function () {
         var datePickerDate, timePickerDate;
@@ -16,6 +17,10 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
             this.$('input.time-input').datebox('setTheDate', this.datetimeVal);
         }
     },
+    buildArray: function(assoc){
+        //This function can be changed later to do a lot more parsing and filtering.
+        return [assoc.dateFrom, assoc.minVal, assoc.maxVal, assoc.defVal];
+    },
     render: function () {
         if (!localStorage.getItem('ScreenshotMode')) {
             var configuration = this.model.get('configuration');
@@ -28,10 +33,16 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
                 defParams = _.extend({}, configuration.defParams);
                 
             if ( configuration.simpleFunc ){
-                console.log("config:" + configuration.simpleFunc);
-                var result = this.filterSimpleFunc((configuration.simpleFunc).split('~'));
+                // console.log("config:" + configuration.simpleFunc);
+                // var result = this.filterSimpleFunc((configuration.simpleFunc).split('~'));
 
-                var minVal = new Date(result[0]), maxVal = new Date(result[1]), defVal = new Date(result[2]);
+                // var minVal = new Date(result[0]), maxVal = new Date(result[1]), defVal = new Date(result[2]);
+                var spf = configuration.simpleFunc;
+                
+                var result = this.filterSimpleFunc(this.buildArray(spf));
+                var minVal = new Date(result[0]), 
+                    maxVal = new Date(result[1]), 
+                    defVal = new Date(result[2]);
 
                 this.model.attributes.min = minVal.ISOLocalTZStamp();
                 this.model.attributes.max = maxVal.ISOLocalTZStamp();
@@ -117,26 +128,26 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
     filterSimpleFunc: function(strings){
         var _this = this;
         var retArray = [];
+        var dateFrom = strings.shift();
+        
         _.each(strings,function(item){
             var pItem = item;
-            if (item.startsWith('activation') || item.startsWith('current')){
-                pItem = _this.processBased(item);
-            }      
+            pItem = _this.processBased(dateFrom,item);
+                 
             retArray.push(pItem);
         });
+
         return retArray;
     },
-    processBased: function(item){
-        var itemArray = item.split(' ');
-        var idate = itemArray[0], hours = itemArray[1];
-
+    processBased: function(dateFrom,hours){
+        
         var bdate = new Date();
-        switch(idate){
+        switch(dateFrom){
             case 'activation':
-                bdate = LF.DateTimeFunctions.getActivationDate(hours);
+                bdate = LF.TimeFunctions.getActivationDate(hours);
                 break;
             case 'current':
-                bdate = LF.DateTimeFunctions.getCurrentDate(hours);
+                bdate = LF.TimeFunctions.getCurrentDate(hours);
                 break;
         }
         return bdate;
@@ -148,66 +159,80 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
 //Start of DateTime helper functions, define new functions within LF.DateTimeFunctions
 LF.DateTimeFunctions = {};
 
-LF.DateTimeFunctions.getActivationDate = function (hours) {
+LF.TimeFunctions.getActivationDate = function (hours) {
     var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
     val.setSeconds(0, 0);
     var fdate = new Date(val);
+    hours = hours.toString();
+
     if ( hours.startsWith('-')){
-
-        var h = hours.replace('-','');
-        val.setHours(val.getHours() - h);
-
-    }else if ( hours.startsWith('=')){
-
-        var h = hours.replace('=','');
+        console.log("hours-:" + hours);
+        var h = parseInt(hours.replace('-',''));
         if ( h > 0){
+            val.setHours(val.getHours() - h);
+        }
 
+    }else if ( typeof hours === "string" && hours.startsWith('=')){
+        
+        var h = parseInt(hours.replace('=',''));
+        if ( h > 0 ){
             var currentHour = val.getHours();
             if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
                 val.setHours(0,0,0,0);
             }else{
-                val.setHours(h); 
+               val.setHours(h); 
             }
+            
+        }
+    }else{
+        
+        if ( hours > 0 ){
+           val.setHours(val.getHours() + parseInt(hours)); 
         }
         
-    }else{
-        val.setHours(val.getHours() + parseInt(hours));
         
     }
-    val = LF.DateTimeFunctions.shiftDates(fdate,val);
+    
+    val = LF.TimeFunctions.shiftDates(fdate,val);
     return val;
 };
 
-LF.DateTimeFunctions.getCurrentDate = function (hours) {
+LF.TimeFunctions.getCurrentDate = function (hours) {
     
     var val = new Date();
     val.setSeconds(0, 0);
     var fdate = new Date(val);
-    
+    hours = hours.toString();
+
     if ( hours.startsWith('-')){
-
-        var h = hours.replace('-','');
-        val.setHours(val.getHours() - h);
-
-    }else if ( hours.startsWith('=')){
-
-        var h = hours.replace('=','');
+        console.log("hours-:" + hours);
+        var h = parseInt(hours.replace('-',''));
         if ( h > 0){
+            val.setHours(val.getHours() - h);
+        }
 
+    }else if ( typeof hours === "string" && hours.startsWith('=')){
+        
+        var h = parseInt(hours.replace('=',''));
+        if ( h > 0 ){
             var currentHour = val.getHours();
             if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
                 val.setHours(0,0,0,0);
             }else{
-                val.setHours(h); 
+               val.setHours(h); 
             }
+            
+        }
+    }else{
+        
+        if ( hours > 0 ){
+           val.setHours(val.getHours() + parseInt(hours)); 
         }
         
-    }else{
-        val.setHours(val.getHours() + parseInt(hours));
         
     }
-    //console.log("returning val:", val);
-    val = LF.DateTimeFunctions.shiftDates(fdate,val);
+    
+    val = LF.TimeFunctions.shiftDates(fdate,val);
     return val;
 };
 
@@ -268,7 +293,6 @@ LF.DateTimeFunctions.getTodayStarting = function (params, callback) {
             var startTime = params.startTime || "12:0:0:0";
 
             var timepieces = startTime.split(":"); 
-            //Evans Thesee: Setting to 12 noon by default;
             now.setHours(parseInt(timepieces[0]),parseInt(timepieces[1]),parseInt(timepieces[2]),parseInt(timepieces[3]));
             
             callback(now);
@@ -339,7 +363,8 @@ LF.DateTimeFunctions.getMidnightYesterday = function (params, callback) {
 //             "defFunction": "getCurrentTime",
 //             "minFunction": "getTodayStarting",
 //             "maxFunction": "getCurrentTime",
-//             "simpleFunc" : "current =1~current 2~current -12",
+//             "simpleFunc": { "dateFrom": "current", "minVal": "=12", "maxVal": 0, "defVal": 0},
+//             // "simpleFunc" : "current =1~current 2~current -12",
 //             // "simpleFunc": (function(){
 //             //     var dates = [];
 //             //     var val = new Date();
