@@ -319,3 +319,47 @@ LF.DateTimeFunctions.getMidnightYesterday = function (params, callback) {
         }
     });
 };
+
+
+//USAGE
+// {
+//     "id": "TRN110_Q1",
+//     "IG": "PracticeDiary",
+//     "repeating": true,
+//     "IT": "",
+//     "text": [
+//         "TRN110_Q1_MSG"
+//     ],
+//     "className": "TRN110_Q1",
+//     "widget": {
+//         "id": "TRN110_Q1_W1",
+//         "type": "DateTimePickerCustom",
+//         "showLabels": true,
+//         "configuration": {
+//             "defFunction": "getCurrentTime",
+//             "minFunction": "getTodayStarting",
+//             "maxFunction": "getCurrentTime",
+//             "simpleFunc" : "current =1~current 2~current -12",
+//             // "simpleFunc": (function(){
+//             //     var dates = [];
+//             //     var val = new Date();
+                
+//             //     var defVal = val.toString();
+                
+//             //     val.setSeconds(0, 0);
+//             //     dates.push(val.toString());
+                
+//             //     val.setHours(val.getHours() + 3);
+//             //     dates.push(val.toString());
+                
+//             //     dates.push(defVal);
+//             //     return dates.join("~");
+//             // })(),
+//             "timeConfiguration": {
+//             },
+//             "minParams": {
+//                 "startTime": "12:0:0:0"
+//             }
+//         }
+//     }
+// },
