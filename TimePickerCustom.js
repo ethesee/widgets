@@ -34,7 +34,7 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
                     def.setHours(defVal.getHours(), defVal.getMinutes(), 0, 0);
                     configuration.defaultValue = (Number(def.getTime())/1000);
                 }
-                
+
                 this.doRender();
 
             }else{    
@@ -128,7 +128,13 @@ LF.TimeFunctions.getActivationDate = function (hours) {
 
         var h = parseInt(hours.replace('=',''));
         if (h > 0){
-            val.setHours(h);
+            var currentHour = val.getHours();
+            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
+                h.setHours(0,0,0,0);
+            }else{
+               val.setHours(h); 
+            }
+            
         }
         
     }else{
