@@ -130,9 +130,9 @@ LF.TimeFunctions.getActivationDate = function (hours) {
         if (h > 0){
             var currentHour = val.getHours();
             if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                h.setHours(0,0,0,0);
+                val.setHours(0,0,0,0);
             }else{
-               val.setHours(h); 
+                val.setHours(h); 
             }
             
         }
