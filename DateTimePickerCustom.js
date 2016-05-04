@@ -139,20 +139,14 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
 
         return retArray;
     },
+    
     processBased: function(dateFrom,hours){
         
-        var bdate = new Date();
-        switch(dateFrom){
-            case 'activation':
-                var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
-                bdate = this.processHours(val,hours);
-                break;
-            case 'current':
-                var val = new Date();
-                bdate = this.processHours(val,hours);
-                break;
-        }
-        return bdate;
+        var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
+        if ( dateFrom === 'current'){
+            val = new Date();
+        } 
+        return this.processHours(val,hours); 
     },
     processHours : function (val,hours) {
         
