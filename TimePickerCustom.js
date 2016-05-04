@@ -94,8 +94,7 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
         
         _.each(strings,function(item){
             var pItem = item;
-            pItem = _this.processBased(dateFrom,item);
-                 
+            pItem = _this.processBased(dateFrom,item);         
             retArray.push(pItem);
         });
 
@@ -106,13 +105,59 @@ LF.Widget.TimePickerCustom = LF.Widget.TimePicker.extend({
         var bdate = new Date();
         switch(dateFrom){
             case 'activation':
-                bdate = LF.TimeFunctions.getActivationDate(hours);
+                var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
+                bdate = this.processHours(val,hours);
                 break;
             case 'current':
-                bdate = LF.TimeFunctions.getCurrentDate(hours);
+                var val = new Date();
+                bdate = this.processHours(val,hours);
                 break;
         }
         return bdate;
+    },
+
+    processHours: function (val,hours) {
+        val.setSeconds(0, 0);
+        var fdate = new Date(val);
+        hours = hours.toString();
+
+        if ( hours.startsWith('-')){
+            var h = parseInt(hours.replace('-',''));
+            if ( h > 0){
+                val.setHours(val.getHours() - h);
+            }
+        }else if ( hours.startsWith('=')){
+            var h = parseInt(hours.replace('=',''));
+            if ( h > 0 ){
+                val.setMinutes(0);
+                var currentHour = val.getHours();
+                if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
+                    val.setHours(0,0,0,0);
+                }else{
+                    val.setHours(h,0,0,0);
+                } 
+            }
+        }else{
+            if ( hours > 0 ){
+               val.setHours(val.getHours() + parseInt(hours)); 
+            }
+        }
+        
+        val = this.shiftDates(fdate,val);
+        return val;
+    },
+
+    shiftDates: function (fdate,sdate){
+        var fday = fdate.getDay();
+        var sday = sdate.getDay();
+        if ( sday > fday){
+            fdate.setHours(23,59,0,0);
+            return fdate;
+        }else if ( sday < fday){    
+            fdate.setHours(0,0,0,0);
+            return fdate;
+        }
+        return sdate;    
     }
 });
 
@@ -121,100 +166,7 @@ LF.TimeFunctions = {};
 
 //################################################
 
-LF.TimeFunctions.getActivationDate = function (hours) {
-    var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
-    val.setSeconds(0, 0);
-    var fdate = new Date(val);
-    hours = hours.toString();
 
-    if ( hours.startsWith('-')){
-        console.log("hours-:" + hours);
-        var h = parseInt(hours.replace('-',''));
-        if ( h > 0){
-            val.setHours(val.getHours() - h);
-        }
-
-    }else if ( typeof hours === "string" && hours.startsWith('=')){
-        
-        var h = parseInt(hours.replace('=',''));
-        if ( h > 0 ){
-            var currentHour = val.getHours();
-            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                val.setHours(0,0,0,0);
-            }else{
-               val.setHours(h); 
-            }
-            
-        }
-    }else{
-        
-        if ( hours > 0 ){
-           val.setHours(val.getHours() + parseInt(hours)); 
-        }
-        
-        
-    }
-    
-    val = LF.TimeFunctions.shiftDates(fdate,val);
-    return val;
-};
-
-LF.TimeFunctions.getCurrentDate = function (hours) {
-    
-    var val = new Date();
-    val.setSeconds(0, 0);
-    var fdate = new Date(val);
-    hours = hours.toString();
-
-    if ( hours.startsWith('-')){
-        console.log("hours-:" + hours);
-        var h = parseInt(hours.replace('-',''));
-        if ( h > 0){
-            val.setHours(val.getHours() - h);
-        }
-
-    }else if ( typeof hours === "string" && hours.startsWith('=')){
-        
-        var h = parseInt(hours.replace('=',''));
-        if ( h > 0 ){
-            var currentHour = val.getHours();
-            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                val.setHours(0,0,0,0);
-            }else{
-               val.setHours(h); 
-            }
-            
-        }
-    }else{
-        
-        if ( hours > 0 ){
-           val.setHours(val.getHours() + parseInt(hours)); 
-        }
-        
-        
-    }
-    
-    val = LF.TimeFunctions.shiftDates(fdate,val);
-    return val;
-};
-
-LF.TimeFunctions.shiftDates = function (fdate,sdate){
-    var fday = fdate.getDay();
-    var sday = sdate.getDay();
-
-    if ( sday > fday){
-        
-        fdate.setHours(23,59,0,0);
-        return fdate;
-    }else if ( sday < fday){
-        
-        fdate.setHours(0,0,0,0);
-        return fdate;
-    }
-        
-    return sdate;
-    
-}
 //################################################
 LF.TimeFunctions.genFun = function(params,callback){
     if (params.offset === 1){

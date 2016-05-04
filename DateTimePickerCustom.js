@@ -144,13 +144,63 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
         var bdate = new Date();
         switch(dateFrom){
             case 'activation':
-                bdate = LF.TimeFunctions.getActivationDate(hours);
+                var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
+                bdate = this.processHours(val,hours);
                 break;
             case 'current':
-                bdate = LF.TimeFunctions.getCurrentDate(hours);
+                var val = new Date();
+                bdate = this.processHours(val,hours);
                 break;
         }
         return bdate;
+    },
+    processHours : function (val,hours) {
+        
+        val.setSeconds(0, 0);
+        var fdate = new Date(val);
+        hours = hours.toString();
+
+        if ( hours.startsWith('-')){
+            var h = parseInt(hours.replace('-',''));
+            if ( h > 0){
+                val.setHours(val.getHours() - h);
+            }
+        }else if ( hours.startsWith('=')){
+            var h = parseInt(hours.replace('=',''));
+            if ( h > 0 ){
+                var currentHour = val.getHours();
+                if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
+                    val.setHours(0,0,0,0);
+                }else{
+                   val.setHours(h); 
+                } 
+            }
+        }else{
+            if ( hours > 0 ){
+               val.setHours(val.getHours() + parseInt(hours)); 
+            }
+        }
+        val = this.shiftDates(fdate,val);
+        return val;
+    },
+
+   
+    shiftDates: function (fdate,sdate){
+        var fday = fdate.getDay();
+        var sday = sdate.getDay();
+
+        if ( sday > fday){
+            
+            fdate.setHours(23,59,0,0);
+            return fdate;
+        }else if ( sday < fday){
+            
+            fdate.setHours(0,0,0,0);
+            return fdate;
+        }
+            
+        return sdate;
+        
     }
 });
 
@@ -159,100 +209,6 @@ LF.Widget.DateTimePickerCustom = LF.Widget.DateTimePicker.extend({
 //Start of DateTime helper functions, define new functions within LF.DateTimeFunctions
 LF.DateTimeFunctions = {};
 
-LF.TimeFunctions.getActivationDate = function (hours) {
-    var val = new Date(LF.Data.Subjects.at(0).get('activationDate'));
-    val.setSeconds(0, 0);
-    var fdate = new Date(val);
-    hours = hours.toString();
-
-    if ( hours.startsWith('-')){
-        console.log("hours-:" + hours);
-        var h = parseInt(hours.replace('-',''));
-        if ( h > 0){
-            val.setHours(val.getHours() - h);
-        }
-
-    }else if ( typeof hours === "string" && hours.startsWith('=')){
-        
-        var h = parseInt(hours.replace('=',''));
-        if ( h > 0 ){
-            var currentHour = val.getHours();
-            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                val.setHours(0,0,0,0);
-            }else{
-               val.setHours(h); 
-            }
-            
-        }
-    }else{
-        
-        if ( hours > 0 ){
-           val.setHours(val.getHours() + parseInt(hours)); 
-        }
-        
-        
-    }
-    
-    val = LF.TimeFunctions.shiftDates(fdate,val);
-    return val;
-};
-
-LF.TimeFunctions.getCurrentDate = function (hours) {
-    
-    var val = new Date();
-    val.setSeconds(0, 0);
-    var fdate = new Date(val);
-    hours = hours.toString();
-
-    if ( hours.startsWith('-')){
-        console.log("hours-:" + hours);
-        var h = parseInt(hours.replace('-',''));
-        if ( h > 0){
-            val.setHours(val.getHours() - h);
-        }
-
-    }else if ( typeof hours === "string" && hours.startsWith('=')){
-        
-        var h = parseInt(hours.replace('=',''));
-        if ( h > 0 ){
-            var currentHour = val.getHours();
-            if ( h === 12 && currentHour < 12){ //if hour to be adjust to 12 and now it's less than 12. midnight
-                val.setHours(0,0,0,0);
-            }else{
-               val.setHours(h); 
-            }
-            
-        }
-    }else{
-        
-        if ( hours > 0 ){
-           val.setHours(val.getHours() + parseInt(hours)); 
-        }
-        
-        
-    }
-    
-    val = LF.TimeFunctions.shiftDates(fdate,val);
-    return val;
-};
-
-LF.DateTimeFunctions.shiftDates = function (fdate,sdate){
-    var fday = fdate.getDay();
-    var sday = sdate.getDay();
-
-    if ( sday > fday){
-        
-        fdate.setHours(23,59,0,0);
-        return fdate;
-    }else if ( sday < fday){
-        
-        fdate.setHours(0,0,0,0);
-        return fdate;
-    }
-        
-    return sdate;
-    
-}
 //Default function, returns null
 LF.DateTimeFunctions.NoopFunction = function (params, callback) {
     callback(null);
@@ -346,6 +302,31 @@ LF.DateTimeFunctions.getMidnightYesterday = function (params, callback) {
 
 
 //USAGE
+// {
+//     "id": "TD030_Q1",
+//     "IG": "Dosing",
+//     "repeating": false,
+//     "IT": "DOSTME1S",
+//     "text": [
+//         "TD030_Q1"
+//     ],
+//     "className": "TD030_Q1",
+//     "widget": {
+//         "id": "TD030_Q1_W1",
+//         "type": "DateTimePickerCustom",
+//         "showLabels": true,
+//         "configuration": {
+//             "defFunction": "getCurrentTime",
+//             "minFunction": "getNumHoursAgo",
+//             "maxFunction": "getCurrentTime",
+//             "timeConfiguration": {},
+//             "minParams": {
+//                 "numHoursAgo": 168
+//             }
+//         }
+//     }
+// },
+
 // {
 //     "id": "TRN110_Q1",
 //     "IG": "PracticeDiary",
